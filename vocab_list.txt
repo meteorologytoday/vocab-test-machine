@@ -1,0 +1,6 @@
+vocab|type|gender|definition
+Buch|noun|das|Book
+schnell|adj||fast
+langsam|adj||slow
+vorstellen|verb||introduce
+stellen|verb||put
