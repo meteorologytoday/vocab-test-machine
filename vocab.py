@@ -1,16 +1,19 @@
 import numpy as np
 import pandas as pd
+import time
+
 from typing import Union
 
 class VocabDatabase:
 
-    def __init__(self, data_file, delimiter="|"):
+    def __init__(self, database):
 
-        self.data_file = data_file
-        self.database = pd.read_csv(data_file, delimiter=delimiter)
+        self.database = database
+        #print("Length of database: ", len(self.database))
+        #numbering = pd.DataFrame( dict(numbering = np.arange(len(self.database)) ))
+        #self.database = self.database.join(numbering)
 
-        numbering = pd.DataFrame( dict(numbering = np.arange(len(self.database)) ))
-        self.database = self.database.join(numbering)
+        print(self.database)
 
 
 def drawExcept(
@@ -28,40 +31,60 @@ def drawExcept(
 
     return numbering[:draw_N]
     
-
+def cleanText(s):
+    s = s.strip()
+    return s
 
 def askQuestion(
     pool,
-    numbering : int,
+    index : int,
     qtype,
     prefix = "",
 ):
 
-    s = pool.iloc[numbering]
+    
+    s = pool.loc[index]
+    result = None
     
     if qtype == "def":
 
-        other_ans = drawExcept(len(pool), 3, except_for = s['numbering'])
+        other_ans = pool[pool.index != index].sample(n=3)        
+        all_ans = pd.concat([other_ans, s.to_frame().T])
+        all_ans = all_ans.sample(frac=1)
 
-        true_ans_idx = int(np.floor(np.random.rand() * ( len(other_ans) + 1 ) )) 
-        all_ans = np.concatenate( ( other_ans[:true_ans_idx] , [numbering,], other_ans[true_ans_idx:] ) ) 
-        
+        print("True answer: ", s)
         print(f"{prefix:s}What is \"{s['vocab']:s}\" ?")
-        for i, k in enumerate(all_ans):
-            _s = pool.iloc[k]
-            print("(%s) %s" % (
-                "abcdefghijklmn"[i],
+
+        true_ans_option = None
+        for i in range(len(all_ans)):
+            
+            _s = all_ans.iloc[i]
+            _s_index = all_ans.index[i]
+            
+            print("(%d) %s" % (
+                i+1,
                 _s['definition'],
             ))
 
-        print("True ans: %s" % ("abcdefghijklmn"[true_ans_idx],))
+            if _s_index == index:
+                true_ans_option = i+1
+
         
+        while result is None:
+            user_ans = input("Your answer: ")
+            try:
+                user_ans = int(user_ans)
+                result = user_ans == true_ans_option
+                
+            except Exception as e:
+                print(e)
+                print("Only integer numbers are allowed")        
     else:
         raise Exception(f"Unknown qtype \"{qtype:s}\"")
 
+    if result is None:
+        raise Exception(f"Result is None. Please check.")
     
-    result = np.random.rand() > 0.5
-
     return result
 
 
@@ -83,17 +106,13 @@ def testMe(
         N_vocab = len(v.database)
         print(f"# Batch {b+1:d}")
 
-        shuffled_order = np.arange(N_vocab)
-        np.random.shuffle(shuffled_order)
-        shuffled_order = shuffled_order[:tests_per_batch]
-        
-        for i, _order in enumerate(shuffled_order):
+        for i in range(N_vocab):
 
             print(f"    ## Test {i+1:d}:")
-            s = sub_db.iloc[_order]
+            s = sub_db.sample()
             result = askQuestion(
                 db,
-                s.numbering,
+                s.index[0],
                 qtype = qtype,
                 prefix = "    ",
             )
@@ -105,9 +124,11 @@ def testMe(
                     print("----> Congrats! You are correct!")
                 else:
                     print("----> Oh-oh!")
+
+            time.sleep(1)
         
         # check error record and decide what to do
-        if b % refresh_set_freq == 0:
+        #if b % refresh_set_freq == 0:
 
             
             
