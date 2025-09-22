@@ -1,30 +1,29 @@
 import numpy as np
 import pandas as pd
 import time
-import os
 from typing import Union
-from prettytable import PrettyTable
+
+import tools
 
 class VocabDatabase:
 
     def __init__(self, database):
 
         self.database = database
-        #print("Length of database: ", len(self.database))
-        #numbering = pd.DataFrame( dict(numbering = np.arange(len(self.database)) ))
-        #self.database = self.database.join(numbering)
+        self.database["error_count"] = 0
+        self.database["asked"] = 0
+        
+        if len(database) == 0:
+            raise Exception(f"Error: Database is empty.")
+            
+            
+        for _index in [
+            "vocab",
+            "definition",
+        ]:
+            if _index not in database.columns:
+                raise Exception(f"Database needs to have column `{_index:s}`.")
 
-        print(self.database)
-
-
-def convertDataFrameToPrettyTable(df):
-    
-    table = PrettyTable()
-
-    for col in df.columns:
-        table.add_column(col, df[col].tolist())
-
-    return table
 
 def drawExcept(
     full_N : int,
@@ -52,10 +51,6 @@ def askQuestion(
     prefix = "",
 ):
 
-   
-
-
- 
     s = pool.loc[index]
     result = None
     
@@ -84,10 +79,12 @@ def askQuestion(
 
         
         while result is None:
-            user_ans = input("Your answer: ")
+            user_ans = input("Your answer (type exit to end test): ")
             try:
 
-                if user_ans.upper() == "EXIT":
+                if user_ans.strip() == "":
+                    continue
+                elif user_ans.upper() == "EXIT":
                     result = "EXIT"
                 else:
                     user_ans = int(user_ans)
@@ -96,11 +93,6 @@ def askQuestion(
             except Exception as e:
                 print(e)
                 print("Only integer numbers are allowed")
-
-
-        
-
-
 
  
     else:
@@ -114,46 +106,62 @@ def askQuestion(
 
 def printStatistic(df):
     
-    df = df[df["error_count"] > 0][ ["vocab", "definition", "error_count"] ]
-    df = df.sort_values(by=["error_count", "vocab"], ascending=False)
+    df_err = df[df["error_count"] > 0][ ["vocab", "definition", "error_count"] ]
+    df_err = df_err.sort_values(by=["error_count", "vocab"], ascending=False)
+    
+    df_notasked = (df[df["asked"] == 0][ ["vocab", "definition"] ]).sort_values(by=["vocab"])
+    
 
-    if len(df) > 0:
+    if len(df_err) > 0:
         
-        print("Here are your errors: ")
-        print(str(convertDataFrameToPrettyTable(df)))
+        print("# Here are your errors: ")
+        print(str(tools.convertDataFrameToPrettyTable(df_err)))
 
     else:
 
         print("Congrats! You have no errors! ") 
 
+    if len(df_notasked) > 0:
+       
+        print() 
+        print() 
+        print("# Here are vocabs that have not been tested: ")
+        print(str(tools.convertDataFrameToPrettyTable(df_notasked)))
+
+
 def testMe(
     v : VocabDatabase,
-    tests_per_batch  : int = 5,
-    batches_per_test : int = 3,
+    questions_per_batch  : int = 5,
+    batches : int = 3,
     refresh_set_freq : int = 1,
     qtype = "def",
     pause: float = 1.0,
 ):
 
     print(f"There are {len(v.database):d} vocabs")
-    print(f"- Tests per batch: {tests_per_batch:d}")
-    print(f"- batches_per_test: {batches_per_test:d}")
+    print(f"- Batches: {batches:d}")
+    print(f"- Questions per batch: {questions_per_batch:d}")
 
     db = v.database
     sub_db = db
-    sub_db = sub_db.assign(error_count=0)
+
 
 
     end_flag = False
-    for b in range(batches_per_test):
-        N_vocab = len(v.database)
-        print(f"# Batch {b+1:d}")
-
-        for i in range(N_vocab):
+    for b in range(batches):
             
-            os.system("clear")
-                
-            print(f"## Test {i+1:d}:")
+        tools.clearWindow()
+        print(f"# Here comes batch {b+1:d} !")
+        time.sleep(2.0)
+
+        N_vocab = len(v.database)
+
+        for i in range(questions_per_batch):
+            
+            tools.clearWindow()
+
+            print(f"# Batch {b+1:d}:")
+            print(f"# Test  {i+1:d} / {questions_per_batch:d}:")
             s = sub_db.sample()
             result = askQuestion(
                 db,
@@ -161,6 +169,8 @@ def testMe(
                 qtype = qtype,
                 prefix = "",
             )
+                    
+            sub_db.loc[s.index[0], "asked"] += 1
 
             if result is None:
 
@@ -184,8 +194,8 @@ def testMe(
                         time.sleep(pause)
                     
                         print("Let us see the definition: ")
-                        print(str(convertDataFrameToPrettyTable(s)))
-                        input("<Press anything to continue>")
+                        print(str(tools.convertDataFrameToPrettyTable(s)))
+                        tools.block()
 
  
                     sub_db.loc[s.index[0], "error_count"] += 1
