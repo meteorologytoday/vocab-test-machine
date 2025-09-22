@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 import time
-
+import os
 from typing import Union
+from prettytable import PrettyTable
 
 class VocabDatabase:
 
@@ -42,7 +43,10 @@ def askQuestion(
     prefix = "",
 ):
 
-    
+   
+
+
+ 
     s = pool.loc[index]
     result = None
     
@@ -52,7 +56,7 @@ def askQuestion(
         all_ans = pd.concat([other_ans, s.to_frame().T])
         all_ans = all_ans.sample(frac=1)
 
-        print("True answer: ", s)
+        #print("True answer: ", s)
         print(f"{prefix:s}What is \"{s['vocab']:s}\" ?")
 
         true_ans_option = None
@@ -73,12 +77,23 @@ def askQuestion(
         while result is None:
             user_ans = input("Your answer: ")
             try:
-                user_ans = int(user_ans)
-                result = user_ans == true_ans_option
-                
+
+                if user_ans.upper() == "EXIT":
+                    result = "EXIT"
+                else:
+                    user_ans = int(user_ans)
+                    result = user_ans == true_ans_option
+            
             except Exception as e:
                 print(e)
-                print("Only integer numbers are allowed")        
+                print("Only integer numbers are allowed")
+
+
+        
+
+
+
+ 
     else:
         raise Exception(f"Unknown qtype \"{qtype:s}\"")
 
@@ -88,12 +103,42 @@ def askQuestion(
     return result
 
 
+def printStatistic(df):
+    
+    df = df[df["error_count"] > 0][ ["vocab", "definition", "error_count"] ]
+    df = df.sort_values(by=["error_count", "vocab"], ascending=False)
+
+    if len(df) > 0:
+        
+        print("Here are your errors: ")
+#        for i, row in df.iterrows():
+            
+#            vocab = row["vocab"]
+#            error_count = row["error_count"]
+#            definition = row["definition"]
+#            print(f"{vocab:s} ({error_count:d}) \t\t\t : {definition:s}")
+
+
+
+        # Convert DataFrame to PrettyTable
+        table = PrettyTable()
+
+        for col in df.columns:
+            table.add_column(col, df[col].tolist())
+        
+        print(str(table))
+        #print(df.to_string(justify="left", index=False)) 
+    else:
+
+        print("Congrats! You have no errors! ") 
+
 def testMe(
     v : VocabDatabase,
     tests_per_batch  : int = 5,
     batches_per_test : int = 3,
     refresh_set_freq : int = 1,
     qtype = "def",
+    pause: float = 1.0,
 ):
 
     print(f"There are {len(v.database):d} vocabs")
@@ -102,12 +147,18 @@ def testMe(
 
     db = v.database
     sub_db = db
+    sub_db = sub_db.assign(error_count=0)
+
+
+    end_flag = False
     for b in range(batches_per_test):
         N_vocab = len(v.database)
         print(f"# Batch {b+1:d}")
 
         for i in range(N_vocab):
-
+            
+            os.system("clear")
+                
             print(f"    ## Test {i+1:d}:")
             s = sub_db.sample()
             result = askQuestion(
@@ -118,18 +169,49 @@ def testMe(
             )
 
             if result is None:
-                print("Unknown result: ", result)
-            else:
-                if result == True:
-                    print("----> Congrats! You are correct!")
-                else:
-                    print("----> Oh-oh!")
 
-            time.sleep(1)
+                print("Unknown result: ", result)
+
+            else:
+
+                if result == True:
+                    print()
+                    print("----> Congrats! You are correct! :)")
+                    print()
+                    time.sleep(pause)
+
+                elif result == False:
+                    print()
+                    print("----> Oh no :( ")
+                    print()
+                   
+                    if qtype == "def":
+                        
+                        time.sleep(pause)
+                    
+                        print("Let us see the definition: ")
+                        print(s.transpose().to_string())
+                        input("<Press anything to continue>")
+
+ 
+                    sub_db.loc[s.index[0], "error_count"] += 1
+                
+                elif result == "EXIT":
+
+                    end_flag = True
+                    print("EXIT the test.")                    
+            
+            if end_flag:
+                break
+    
+
         
+        if end_flag:
+            break
         # check error record and decide what to do
         #if b % refresh_set_freq == 0:
 
+    printStatistic(sub_db)    
             
             
 
