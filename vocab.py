@@ -17,6 +17,15 @@ class VocabDatabase:
         print(self.database)
 
 
+def convertDataFrameToPrettyTable(df):
+    
+    table = PrettyTable()
+
+    for col in df.columns:
+        table.add_column(col, df[col].tolist())
+
+    return table
+
 def drawExcept(
     full_N : int,
     draw_N : int,
@@ -111,23 +120,8 @@ def printStatistic(df):
     if len(df) > 0:
         
         print("Here are your errors: ")
-#        for i, row in df.iterrows():
-            
-#            vocab = row["vocab"]
-#            error_count = row["error_count"]
-#            definition = row["definition"]
-#            print(f"{vocab:s} ({error_count:d}) \t\t\t : {definition:s}")
+        print(str(convertDataFrameToPrettyTable(df)))
 
-
-
-        # Convert DataFrame to PrettyTable
-        table = PrettyTable()
-
-        for col in df.columns:
-            table.add_column(col, df[col].tolist())
-        
-        print(str(table))
-        #print(df.to_string(justify="left", index=False)) 
     else:
 
         print("Congrats! You have no errors! ") 
@@ -159,13 +153,13 @@ def testMe(
             
             os.system("clear")
                 
-            print(f"    ## Test {i+1:d}:")
+            print(f"## Test {i+1:d}:")
             s = sub_db.sample()
             result = askQuestion(
                 db,
                 s.index[0],
                 qtype = qtype,
-                prefix = "    ",
+                prefix = "",
             )
 
             if result is None:
@@ -190,7 +184,7 @@ def testMe(
                         time.sleep(pause)
                     
                         print("Let us see the definition: ")
-                        print(s.transpose().to_string())
+                        print(str(convertDataFrameToPrettyTable(s)))
                         input("<Press anything to continue>")
 
  
