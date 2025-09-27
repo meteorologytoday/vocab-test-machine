@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=str, help="Input file in csv format. You can specify delimiter with `--delimiter` option. ", default="vocab_list.csv")
     parser.add_argument("--delimiter", type=str, help="Delimiter for csv file. ", default="|")
-    parser.add_argument("--test-type", type=str, help="Type of test you want to take.", default="def", choices=["def",])
+    parser.add_argument("--test-type", type=str, help="Type of test you want to take.", default="word2def", choices=["word2def", "def2word"])
     parser.add_argument("--file-opener", action="store_true", help="If set, then ignore `--input`, and open a GUI file selector for input file. ")
     parser.add_argument("--google-spreadsheet", type=str, help="The hash id for google spreadsheet (https://docs.google.com/spreadsheets/d/[hash_id]/...). If set, then ignore `--file-opener` and `--input`. Also `--delimiter` will be set to ','.", default=None)
     parser.add_argument("--google-spreadsheet-gid", type=str, help="The sheet gid.", default="0")

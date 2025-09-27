@@ -54,7 +54,7 @@ def askQuestion(
     s = pool.loc[index]
     result = None
     
-    if qtype == "def":
+    if qtype == "vocab2def":
 
         other_ans = pool[pool.index != index].sample(n=3)        
         all_ans = pd.concat([other_ans, s.to_frame().T])
@@ -94,7 +94,46 @@ def askQuestion(
                 print(e)
                 print("Only integer numbers are allowed")
 
- 
+     elif qtype == "def2vocab":
+
+        other_ans = pool[pool.index != index].sample(n=3)        
+        all_ans = pd.concat([other_ans, s.to_frame().T])
+        all_ans = all_ans.sample(frac=1)
+
+        #print("True answer: ", s)
+        print(f"{prefix:s}What is \"{s['vocab']:s}\" ?")
+
+        true_ans_option = None
+        for i in range(len(all_ans)):
+            
+            _s = all_ans.iloc[i]
+            _s_index = all_ans.index[i]
+            
+            print("(%d) %s" % (
+                i+1,
+                _s['definition'],
+            ))
+
+            if _s_index == index:
+                true_ans_option = i+1
+
+        
+        while result is None:
+            user_ans = input("Your answer (type exit to end test): ")
+            try:
+
+                if user_ans.strip() == "":
+                    continue
+                elif user_ans.upper() == "EXIT":
+                    result = "EXIT"
+                else:
+                    user_ans = int(user_ans)
+                    result = user_ans == true_ans_option
+            
+            except Exception as e:
+                print(e)
+                print("Only integer numbers are allowed")
+
     else:
         raise Exception(f"Unknown qtype \"{qtype:s}\"")
 
@@ -134,7 +173,7 @@ def testMe(
     questions_per_batch  : int = 5,
     batches : int = 3,
     refresh_set_freq : int = 1,
-    qtype = "def",
+    qtype = "vocab2def",
     pause: float = 1.0,
 ):
 
